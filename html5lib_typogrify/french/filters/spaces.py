@@ -3,8 +3,7 @@ import regex, locale
 from html5lib.filters import _base
 
 
-PUNCT_REGEX = regex.compile(ur'(\w)\s*([;:!])\s*')
-QUESTION_REGEX = regex.compile(ur'\s(\?)')
+PUNCT_REGEX = regex.compile(ur'(\w)\s*([;:!\?%])\s*')
 LAQUO_REGEX = regex.compile(ur'«(\s)')
 RAQUO_REGEX = regex.compile(ur'(\s)»')
 NOSPACEBEFORE_REGEX = regex.compile(ur" ([\)\]\},])")
@@ -30,7 +29,6 @@ def fix_punctuation(text):
     Replaces: [SPACE]?  by  [THINSP]?
     """
     text = PUNCT_REGEX.sub(ur'\1\u202F\2 ', text)
-    text = QUESTION_REGEX.sub(ur'\u202F?', text)
     return text
 
 
@@ -67,7 +65,7 @@ class Filter(_base.Filter):
     >>> import html5lib
     >>> from html5lib.filters import sanitizer
     >>>
-    >>> string = "Oui! Non  ? Regardez:  un chien  ;un chat"
+    >>> string = "Oui! Non  ? Regardez:  un chien  ;un chat. 55 % 45%"
     >>> dom = html5lib.parse(string, treebuilder="dom")
     >>> walker = html5lib.getTreeWalker("dom")
     >>>
@@ -78,7 +76,7 @@ class Filter(_base.Filter):
     >>> output = s.serialize(stream)
     >>>
     >>> print(repr(s.render(stream)))
-    u'Oui\u202F! Non\u202F? Regardez\u202F: un chien\u202F; un chat'
+    u'Oui\u202f! Non\u202f? Regardez\u202f: un chien\u202f; un chat. 55\u202f% 45\u202f% '
     """
     def __iter__(self):
         for token in _base.Filter.__iter__(self):
