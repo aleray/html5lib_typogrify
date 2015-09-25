@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name='html5lib_typogrify',
-    version='0.1a1',
+    version='0.1a2',
     author='Alexandre Leray',
     author_email='alexandre@stdin.fr',
     description=('Corrects common typographical mistakes.'),
@@ -19,7 +19,8 @@ setup(
     include_package_data = True,
     install_requires=[
         'html5lib==0.999',
-        'regex==2014.12.24'
+        'regex==2014.12.24',
+        'Pyphen==0.9.1'
     ],
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
