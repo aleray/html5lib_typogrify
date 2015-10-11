@@ -31,11 +31,20 @@ class Filter(_base.Filter):
     def __iter__(self):
         psplit = re.compile(r"([^\w]+)", re.UNICODE)
         pword = re.compile(r"\A[\w]+\Z", re.UNICODE)
+        blacklist = ["h1", "h2"]
 
         for token in _base.Filter.__iter__(self):
             type = token["type"]
 
-            if token["type"] == "Characters":
+            skip = False
+
+            if token["type"] == "StartTag" and token["name"] in blacklist:
+                skip = True
+
+            if token["type"] == "EndTag" and token["name"] in blacklist:
+                skip = False
+
+            if token["type"] == "Characters" and not skip:
                 data = token["data"]
 
                 parts = []
