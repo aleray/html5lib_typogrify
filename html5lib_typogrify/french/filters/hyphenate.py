@@ -32,11 +32,9 @@ class Filter(_base.Filter):
         psplit = re.compile(r"([^\w]+)", re.UNICODE)
         pword = re.compile(r"\A[\w]+\Z", re.UNICODE)
         blacklist = ["h1", "h2"]
+        skip = False
 
         for token in _base.Filter.__iter__(self):
-            type = token["type"]
-
-            skip = False
 
             if token["type"] == "StartTag" and token["name"] in blacklist:
                 skip = True
