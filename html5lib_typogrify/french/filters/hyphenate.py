@@ -4,12 +4,32 @@ import re
 from html5lib.filters import _base
 
 
+def hyphenate(data, right=2, left=3, skip_end=0):
+    dic = pyphen.Pyphen(lang='fr')
+    dic.left = left
+    dic.right = right
+
+    psplit = re.compile(r"([^\w]+)", re.UNICODE)
+    pword = re.compile(r"\A[\w]+\Z", re.UNICODE)
+
+    split = psplit.split(data)
+    indices = [i for i, w in enumerate(split) if pword.match(w)]
+
+    skip = skip_end * -1
+    todo = indices[:skip] if skip_end > 0 and len(indices) > 0 else indices
+
+    for i in todo:
+        split[i] = dic.inserted(split[i]).replace(u'-', u'\u00AD')
+
+    return u"".join(split)
+
+
 class Filter(_base.Filter):
     """
     >>> import html5lib
     >>> from html5lib.filters import sanitizer
     >>>
-    >>> string = "<p>Des outils sensibles</p>"
+    >>> string = "<p>Des outils <em>incroyablement</em> rugueux et <em>sensibles</em>.</p>"
     >>> dom = html5lib.parseFragment(string, treebuilder="dom")
     >>> walker = html5lib.getTreeWalker("dom")
     >>>
@@ -24,38 +44,38 @@ class Filter(_base.Filter):
     """
     def __init__(self, source, left=2, right=3):
         self.source = source
-        self.dic = pyphen.Pyphen(lang='fr')
-        self.dic.left = left
-        self.dic.right = right
+        self.right = right
+        self.left = left
 
     def __iter__(self):
-        psplit = re.compile(r"([^\w]+)", re.UNICODE)
-        pword = re.compile(r"\A[\w]+\Z", re.UNICODE)
         blacklist = ["h1", "h2"]
         skip = False
 
-        for token in _base.Filter.__iter__(self):
+        block_elts = ["p"]
+        in_block = False
 
-            if token["type"] == "StartTag" and token["name"] in blacklist:
-                skip = True
+        tokens = _base.Filter.__iter__(self)
 
-            if token["type"] == "EndTag" and token["name"] in blacklist:
-                skip = False
+        for token in tokens:
+            if token["type"] == "StartTag" and token["name"] == "p":
+                stack = [token]
 
-            if token["type"] == "Characters" and not skip:
-                data = token["data"]
+                while not (token["type"] == "EndTag" and token.get("name") == "p"):
+                    token = tokens.next()
+                    stack.append(token)
 
-                parts = []
+                nodes = [i for i in stack if i["type"] == "Characters"]
 
-                for word in psplit.split(data):
-                    if pword.match(word):
-                        parts.append(self.dic.inserted(word).replace(u'-', u'\u00AD'))
-                    else:
-                        parts.append(word)
+                if len(nodes):
+                    for i in nodes[:-1]:
+                        i["data"] = hyphenate(i["data"], right=self.right, left=self.left)
 
-                token["data"] = u"".join(parts)
+                    nodes[-1]["data"] = hyphenate(nodes[-1]["data"], right=self.right, left=self.left, skip_end=1)
 
-            yield token
+                for i in stack:
+                    yield i
+            else:
+                yield token
 
 
 if __name__ == "__main__":
