@@ -51,16 +51,17 @@ class Filter(_base.Filter):
         blacklist = ["h1", "h2"]
         skip = False
 
-        block_elts = ["p"]
+        block_elts = ["p", "li"]
         in_block = False
 
         tokens = _base.Filter.__iter__(self)
 
         for token in tokens:
-            if token["type"] == "StartTag" and token["name"] == "p":
+            if token["type"] == "StartTag" and token["name"] in block_elts:
+                name = token["name"]
                 stack = [token]
 
-                while not (token["type"] == "EndTag" and token.get("name") == "p"):
+                while not (token["type"] == "EndTag" and token.get("name") == name):
                     token = tokens.next()
                     stack.append(token)
 
