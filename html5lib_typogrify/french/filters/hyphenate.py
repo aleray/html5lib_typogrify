@@ -60,7 +60,7 @@ class Filter(_base.Filter):
 
             return test1 and test2
 
-        blacklist = ["h1", "h2", "h3", "figcaption"]
+        blacklist = ["h1", "h2", "h3", "figcaption", "blockquote"]
         skip = False
 
         block_elts = ["p", "li"]
