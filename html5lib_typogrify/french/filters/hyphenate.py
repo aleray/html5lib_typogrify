@@ -29,7 +29,7 @@ class Filter(_base.Filter):
     >>> import html5lib
     >>> from html5lib.filters import sanitizer
     >>>
-    >>> string = "<h2>Des outils <em>incroyablement</em> rugueux et sensibles.</h2>"
+    >>> string = "<p>incroyablement sensible</p><figcaption><p>Des outils <em>incroyablement</em> rugueux et sensibles.</p></figcaption>"
     >>> dom = html5lib.parseFragment(string, treebuilder="dom")
     >>> walker = html5lib.getTreeWalker("dom")
     >>>
@@ -60,7 +60,7 @@ class Filter(_base.Filter):
 
             return test1 and test2
 
-        blacklist = ["h1", "h2", "h3"]
+        blacklist = ["h1", "h2", "h3", "figcaption"]
         skip = False
 
         block_elts = ["p", "li"]
@@ -69,7 +69,13 @@ class Filter(_base.Filter):
         tokens = _base.Filter.__iter__(self)
 
         for token in tokens:
-            if token["type"] == "StartTag" and can_hyphen(token):
+            if token["type"] == "StartTag" and token["name"] in blacklist:
+                skip = True
+
+            if token["type"] == "EndTag" and token["name"] in blacklist:
+                skip = False
+
+            if token["type"] == "StartTag" and can_hyphen(token) and not skip:
                 name = token["name"]
                 stack = [token]
 
