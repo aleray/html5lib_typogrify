@@ -4,7 +4,7 @@ import re
 from html5lib.filters import _base
 
 
-def hyphenate(data, right=2, left=3, skip_end=0):
+def hyphenate(data, right=2, left=3, min_len=5, skip_end=0):
     dic = pyphen.Pyphen(lang='fr')
     dic.left = left
     dic.right = right
@@ -12,14 +12,18 @@ def hyphenate(data, right=2, left=3, skip_end=0):
     psplit = re.compile(r"([^\w]+)", re.UNICODE)
     pword = re.compile(r"\A[\w]+\Z", re.UNICODE)
 
+    # splits sentences into words, keeping word seperators
     split = psplit.split(data)
+    # records the indices of the words
     indices = [i for i, w in enumerate(split) if pword.match(w)]
 
     skip = skip_end * -1
     todo = indices[:skip] if skip_end > 0 and len(indices) > 0 else indices
 
     for i in todo:
-        split[i] = dic.inserted(split[i]).replace(u'-', u'\u00AD')
+        # if the word is long enough, hyphenates it
+        if len(split[i]) >= min_len:
+            split[i] = dic.inserted(split[i], u'\u00AD')
 
     return u"".join(split)
 
@@ -42,10 +46,11 @@ class Filter(_base.Filter):
     >>> print(repr(s.render(stream)))
     u'<p>Des ou\\xadtils sen\\xadsibles</p>'
     """
-    def __init__(self, source, left=2, right=3):
+    def __init__(self, source, left=2, right=3, min_len=5):
         self.source = source
         self.right = right
         self.left = left
+        self.min_len = 5
 
     def __iter__(self):
         def can_hyphen(token):
@@ -69,6 +74,7 @@ class Filter(_base.Filter):
         tokens = _base.Filter.__iter__(self)
 
         for token in tokens:
+            # Do not hyphenate inside the tags in the blacklist
             if token["type"] == "StartTag" and token["name"] in blacklist:
                 skip = True
 
@@ -77,20 +83,29 @@ class Filter(_base.Filter):
 
             if token["type"] == "StartTag" and can_hyphen(token) and not skip:
                 name = token["name"]
+
+                # Collects all the tokens of the tag so we can treat its text nodes as sentences.
                 stack = [token]
 
                 while not (token["type"] == "EndTag" and token.get("name") == name):
                     token = tokens.next()
                     stack.append(token)
 
+                # We reference the texts nodes only
                 nodes = [i for i in stack if i["type"] == "Characters"]
 
                 if len(nodes):
+                    # We do not want to hyphenate the last word of a sentence.
+                    # To do so we apply a different hyphenation parameters on the last text node.
+
+                    # First we hyphenate all the text nodes except the last one
                     for i in nodes[:-1]:
-                        i["data"] = hyphenate(i["data"], right=self.right, left=self.left)
+                        i["data"] = hyphenate(i["data"], right=self.right, left=self.left, min_len=self.min_len)
 
-                    nodes[-1]["data"] = hyphenate(nodes[-1]["data"], right=self.right, left=self.left, skip_end=1)
+                    # Then we hyphenate the last text node specifying we do not want to hyphenate the last word.
+                    nodes[-1]["data"] = hyphenate(nodes[-1]["data"], right=self.right, left=self.left, min_len=self.min_len, skip_end=1)
 
+                # To finish, we just yield all the accumulated tokens
                 for i in stack:
                     yield i
             else:
