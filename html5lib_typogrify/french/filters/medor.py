@@ -12,9 +12,14 @@ CHARS = {
     'THINSP'  : u'\u2009',
     'NBTHINSP': u"\u202F",
     'LAQUO'   : u"\u00AB",
-    'RAQUO'   : u"\u00BB"
+    'RAQUO'   : u"\u00BB",
+    'APOS'    : u"\u0027",
+    'RSQUO'   : u"\u2019"
 }
 
+
+RE_APOSTROPHE_MATCH = re.compile(ur"{APOS}\s*".format(**CHARS))
+RE_APOSTROPHE_SUB = ur"{RSQUO}".format(**CHARS)
 
 RE_LBRAKET_MATCH = re.compile(ur"([\(\[])\s*".format(**CHARS))
 RE_LBRAKET_SUB = ur"\1".format(**CHARS)
@@ -47,7 +52,7 @@ class Filter(_base.Filter):
     >>> import html5lib
     >>> from html5lib.filters import sanitizer
     >>>
-    >>> string = u"Oui! Non  ? Regardez: un http://chien  ; un chat. 55 % 45%"
+    >>> string = u"Oui! Non  ? Regardez: un http://chien  ; un chat. 55 % 45%. Nom d'un petit bonhomme"
     >>> dom = html5lib.parse(string, treebuilder="dom")
     >>> walker = html5lib.getTreeWalker("dom")
     >>>
@@ -58,6 +63,7 @@ class Filter(_base.Filter):
     >>> output = s.serialize(stream)
     >>>
     >>> print(repr(s.render(stream)))
+    u'Oui\u202f! Non\u202f? Regardez\xa0: un http://chien\u202f; un chat. 55\u202f% 45\u202f%. Nom d\u2019Yun petit bonhomme'
     """
     def __iter__(self):
         for token in _base.Filter.__iter__(self):
@@ -73,6 +79,7 @@ class Filter(_base.Filter):
                 text = RE_RAQUO_MATCH.sub(RE_RAQUO_SUB, text)
                 text = RE_LBRAKET_MATCH.sub(RE_LBRAKET_SUB, text)
                 text = RE_RBRAKET_MATCH.sub(RE_RBRAKET_SUB, text)
+                text = RE_APOSTROPHE_MATCH.sub(RE_APOSTROPHE_SUB, text)
 
                 token["data"] = text
 
